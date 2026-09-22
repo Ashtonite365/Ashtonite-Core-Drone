@@ -111,3 +111,10 @@ local collisionPoints = {Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3
 local collisionEnabled, currentThrottle = true, 0
 local visCamPos, dronePos = nil, nil
 local stickLx, stickLy, stickRx, stickRy = 0, 0, 0, 0
+
+local BINDABLE = {
+	"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
+	"Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
+	"SpaceBar","LeftShift","RightShift","LeftControl","RightControl","LeftAlt","RightAlt","Tab",
+	"Up","Down","Left","Right","Enter","CapsLock"
+}
