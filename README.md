@@ -8,7 +8,7 @@ Acro + Classic FPV drone camera script for Orion Drift Spectator.
 
 1. [Download Ashtonite.Core Drone.Luau](https://github.com/Ashtonite365/Ashtonite-Core-Drone/raw/main/Ashtonite.Core%20Drone.Luau)
    
-   This link always downloads the latest file on `main`. Version is not in the filename.
+   Current version: **1.1.0**
 2. Put that file in `Documents\Another-Axiom\A2\Cameras\Behaviors`
 3. In Spectator, open Cameras (`F2`) and activate **Ashtonite.Core Drone**
 
