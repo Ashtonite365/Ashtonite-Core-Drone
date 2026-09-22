@@ -1,6 +1,7 @@
 -- @name Ashtonite365's PFV+
 -- @credits Scha's Drone Camera + Grok
 -- @author Another Axiom
+-- Version: 1.0.0 (archive)
 
 metadata = {
 	name = "Ashtonite365's FPV+",
