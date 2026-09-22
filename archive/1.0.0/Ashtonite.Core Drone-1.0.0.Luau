@@ -1,10 +1,10 @@
--- @name Ashtonite365's PFV+
+-- @name Core Drone
 -- @credits Scha's Drone Camera + Grok
 -- @author Another Axiom
 -- Version: 1.0.0 (archive)
 
 metadata = {
-	name = "Ashtonite365's FPV+",
+	name = "Core Drone",
 	description = "Simulates a 5″ FPV drone in acro mode",
 	author = "Ashtonite365",
 	defaultKeybind = "",
