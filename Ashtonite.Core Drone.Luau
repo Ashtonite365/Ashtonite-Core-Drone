@@ -1,6 +1,7 @@
 -- @name Ashtonite.Core Drone
 -- @credits Scha's Drone Camera + Grok
 -- @author Ashtonite365
+-- Version: 1.1.0
 -- File: Ashtonite.Core Drone.Luau
 
 metadata = {
