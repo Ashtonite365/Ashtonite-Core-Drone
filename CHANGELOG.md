@@ -8,8 +8,7 @@ Added
 - Colour picker apply-to-item flow
 
 Changed
-- Default throttle fill back to light blue, speed fill back to light green
-- Sensitivity lives in Drone Settings
+- Drone Sensitivity lives in Drone Settings
 - HUD drawn closer to the camera (less ground / wall clip)
 
 Fixed
