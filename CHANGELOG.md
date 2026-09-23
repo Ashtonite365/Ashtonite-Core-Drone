@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.2.0
+
+Added
+- Sensitivity tab tips for full-stick curve
+- GrandEffect ground-boost tip
+- Drone Settings sections: Throttle, Physics, Hitbox
+
+Changed
+- Input Processing tab renamed Sensitivity
+- Defaults: classic roll 0.750, mouse pitch/X 0.200 (slider shows 1), gravity 1500
+- Mouse / full-stick sliders remapped so 1 = the default
+- Throttle sliders show ÷10 (400 instead of 4000)
+- Vertical / Reverse throttle renamed Up / Down Throttle
+- Horizontal throttle slider max 1000 (display)
+- Full-stick slider max 10
+- Centre crosshair size max 20
+- Throttle and speed bar width max 300
+- Save keys renamed to match labels
+
+Fixed
+- Mouse Y useful invert is in code; Invert Mouse Y box stays off by default
+
+Removed
+- Compatibility with 1.1.0 saved configs (keys renamed)
+
 ## 1.1.0
 
 Added
