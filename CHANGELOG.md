@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0
+## 1.1.1
 
 Added
 - Sensitivity tab tips for full-stick curve
@@ -11,7 +11,7 @@ Changed
 - Input Processing tab renamed Sensitivity
 - Defaults: classic roll 0.750, mouse pitch/X 0.200 (slider shows 1), gravity 1500
 - Mouse / full-stick sliders remapped so 1 = the default
-- Throttle sliders show ÷10 (400 instead of 4000)
+- Throttle sliders show /10 (400 instead of 4000)
 - Vertical / Reverse throttle renamed Up / Down Throttle
 - Horizontal throttle slider max 1000 (display)
 - Full-stick slider max 10
