@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.2
+
+Added
+- Separate Movement Smoothness and Rotation Smoothness sliders
+- Rendering tab for name tags and spectator debug visuals
+- Colour picker apply-to-item flow
+
+Changed
+- Default throttle fill back to light blue, speed fill back to light green
+- Sensitivity lives in Drone Settings
+- HUD drawn closer to the camera (less ground / wall clip)
+
+Fixed
+- Rotation smoothness no longer throwing the OSD off screen
+- Script vanishing from the camera list (200 local register cap)
+- Thin-wall / editor-geo collision pop and wrong-side eject
+- Colour tab crash from passing a table into colorEdit
+
 ## 1.1.1
 
 Added
