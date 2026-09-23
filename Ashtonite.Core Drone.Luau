@@ -3,7 +3,7 @@
 -- @author Ashtonite365
 metadata = {
 	name = "Ashtonite.Core Drone",
-	description = "Acro and Classic FPV drone camera for Spectator",
+	description = "Acro and Classic FPV drone camera for Spectator (1.1.2)",
 	author = "Ashtonite365",
 	defaultKeybind = "",
 }
@@ -21,6 +21,10 @@ local surfaceFriction = cfg("surfaceFriction", 0.200)
 local fOV = cfg("fieldOfView", 105)
 local currentFov, hudFov = fOV, fOV
 local showNameTags = cfg("showNameTags", true)
+local hideNearestHead = cfg("hideNearestHead", false)
+local showBallPlaceVisuals = cfg("placeBallHereVisuals", true)
+local showScrapRunSpinners = cfg("scrapRunSpinners", true)
+local showGoalExplosions = cfg("goalExplosions", false)
 local grandEffect = cfg("grandEffect", true)
 local droneWidth, droneLength, droneHeight = cfg("droneCollisionWidth", 9), cfg("droneCollisionLength", 9), cfg("droneCollisionHeight", 4)
 local overallSensitivity = cfg("overallSensitivity", 1.2)
@@ -46,6 +50,7 @@ local speedFov = cfg("speedFov", false)
 local osdWobble = cfg("osdWobble", false)
 local cameraSmooth = cfg("cameraSmoothness", false)
 local cameraSmoothAmount = math.clamp(cfg("smoothness", 0.12), 0.01, 0.50)
+config.rotationSmoothness = math.clamp(cfg("rotationSmoothness", 0.12), 0.01, 0.50)
 local controllerRollSens = cfg("rollSensitivity", 0.750)
 local showOsd = cfg("toggleAllOsd", true)
 local prevOsdToggle = false
@@ -60,7 +65,7 @@ local waitingBind = nil
 local showCrosshair = cfg("showCentreCrosshair", true)
 local crosshairHSize, crosshairVSize, crosshairThick = cfg("crosshairHorizontalSize", 6.0), cfg("crosshairVerticalSize", 3.3), cfg("crosshairThickness", 1.35)
 local crosshairRot = cfg("crosshairRotation", 0)
-local colCH = {cfg("centreCrosshair_R", 0.95), cfg("centreCrosshair_G", 0.95), cfg("centreCrosshair_B", 0.95)}
+local colCH = {cfg("centreCrosshair_R", 1), cfg("centreCrosshair_G", 1), cfg("centreCrosshair_B", 1)}
 local showThrottleBar = cfg("showThrottleBar", true)
 local throttleWidth, throttleHeight = cfg("throttleBarWidth", 122.0), cfg("throttleBarHeight", 6.2)
 local throttleOffX = cfg("throttleBarHorizontalOffset", 0.0)
@@ -76,7 +81,7 @@ local speedOffX, speedOffY = cfg("speedBarHorizontalOffset", 0.0), cfg("speedBar
 local speedThick, speedRot = cfg("speedBarOutlineThickness", 2.0), cfg("speedBarRotation", 0)
 local topSpeed = cfg("topSpeed", 7500)
 local colSBOut = {cfg("speedBarOutline_R", 1), cfg("speedBarOutline_G", 1), cfg("speedBarOutline_B", 1)}
-local colSBFill = {cfg("speedBarFill_R", 0.55), cfg("speedBarFill_G", 1.00), cfg("speedBarFill_B", 0.55)}
+local colSBFill = {cfg("speedBarFill_R", 0.45), cfg("speedBarFill_G", 1), cfg("speedBarFill_B", 0.45)}
 local HUD_REF_FOV, outerRadiusBase, innerRadiusBase = 105.0, 28.0, 7.0
 local function makeStick(side)
 	return {
@@ -89,16 +94,16 @@ local function makeStick(side)
 		crossH = cfg("stickCrosshairHorizontalSize"..side, 4.0), crossV = cfg("stickCrosshairVerticalSize"..side, 4.0), crossThick = cfg("stickCrosshairThickness"..side, 1.3),
 		crossRot = cfg("stickCrosshairRotation"..side, 0),
 		lineThick = cfg("stickLineThickness"..side, 1.4), offX = cfg("stickHorizontalOffset"..side, 105.0), offY = cfg("stickVerticalOffset"..side, 52.0),
-		colOuter = {cfg("zoneColour"..side.."_R", 0.95), cfg("zoneColour"..side.."_G", 0.95), cfg("zoneColour"..side.."_B", 0.95)},
-		colInner = {cfg("stickDisplayColour"..side.."_R", 0.95), cfg("stickDisplayColour"..side.."_G", 0.95), cfg("stickDisplayColour"..side.."_B", 0.95)},
-		colCross = {cfg("stickCrosshairColour"..side.."_R", 0.95), cfg("stickCrosshairColour"..side.."_G", 0.95), cfg("stickCrosshairColour"..side.."_B", 0.95)},
-		colLine  = {cfg("stickLineColour"..side.."_R", 0.70), cfg("stickLineColour"..side.."_G", 0.70), cfg("stickLineColour"..side.."_B", 1.00)},
+		colOuter = {cfg("zoneColour"..side.."_R", 1), cfg("zoneColour"..side.."_G", 1), cfg("zoneColour"..side.."_B", 1)},
+		colInner = {cfg("stickDisplayColour"..side.."_R", 1), cfg("stickDisplayColour"..side.."_G", 1), cfg("stickDisplayColour"..side.."_B", 1)},
+		colCross = {cfg("stickCrosshairColour"..side.."_R", 1), cfg("stickCrosshairColour"..side.."_G", 1), cfg("stickCrosshairColour"..side.."_B", 1)},
+		colLine  = {cfg("stickLineColour"..side.."_R", 1), cfg("stickLineColour"..side.."_G", 1), cfg("stickLineColour"..side.."_B", 1)},
 	}
 end
 local stickL, stickR = makeStick("L"), makeStick("R")
 local collisionPoints = {Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector, Vec3.zeroVector}
 local collisionEnabled, currentThrottle = true, 0
-local visCamPos, dronePos = nil, nil
+local visCamPos, dronePos, lastFreePos = nil, nil, nil
 local stickLx, stickLy, stickRx, stickRy = 0, 0, 0, 0
 local BINDABLE = {
 	"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
@@ -196,11 +201,48 @@ local function sliderRotR(label, value, minV, maxV, def, id)
 	if Gui.button("R##"..id) then value = def end
 	return value
 end
-local function rgbRow(label, col, def)
-	Gui.text(label)
-	col[1] = sliderR("Red##"..label, col[1], 0, 1, def[1], "R"..label)
-	col[2] = sliderR("Green##"..label, col[2], 0, 1, def[2], "G"..label)
-	col[3] = sliderR("Blue##"..label, col[3], 0, 1, def[3], "B"..label)
+local hsvCache = {}
+local function rgbToHsv(r, g, b)
+	local maxc, minc = math.max(r, g, b), math.min(r, g, b)
+	local v, d = maxc, maxc - minc
+	local s = (maxc < 1e-6) and 0 or d / maxc
+	local h = 0
+	if d > 1e-6 then
+		if maxc == r then h = ((g - b) / d) % 6
+		elseif maxc == g then h = (b - r) / d + 2
+		else h = (r - g) / d + 4 end
+		h /= 6
+		if h < 0 then h += 1 end
+	end
+	return h, s, v
+end
+local function hsvToRgb(h, s, v)
+	local i = math.floor(h * 6)
+	local f = h * 6 - i
+	local p, q, t = v * (1 - s), v * (1 - f * s), v * (1 - (1 - f) * s)
+	i = i % 6
+	if i == 0 then return v, t, p
+	elseif i == 1 then return q, v, p
+	elseif i == 2 then return p, v, t
+	elseif i == 3 then return p, q, v
+	elseif i == 4 then return t, p, v
+	end
+	return v, p, q
+end
+local pickCol = {1, 1, 1}
+local function copyCol(dst, src)
+	dst[1], dst[2], dst[3] = src[1], src[2], src[3]
+end
+local function drawPicker()
+	local sC = Gui.colorEdit("Colour picker", LinearColor.new(pickCol[1], pickCol[2], pickCol[3], 1))
+	if sC then
+		pickCol[1] = sC.R
+		pickCol[2] = sC.G
+		pickCol[3] = sC.B
+	end
+end
+local function saveTo(label, dest)
+	if Gui.button("Apply "..label) then copyCol(dest, pickCol) end
 end
 local function storeCol(prefix, col)
 	config[prefix.."_R"], config[prefix.."_G"], config[prefix.."_B"] = col[1], col[2], col[3]
@@ -223,7 +265,7 @@ local function resetStick(s)
 	s.zoneRot, s.stickRot = 0, 0
 end
 local function resetStickCols(s)
-	s.colOuter, s.colInner, s.colCross, s.colLine = {0.95, 0.95, 0.95}, {0.95, 0.95, 0.95}, {0.95, 0.95, 0.95}, {0.70, 0.70, 1.00}
+	s.colOuter, s.colInner, s.colCross, s.colLine = {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}
 end
 local function saveStickCols(side, s)
 	storeCol("zoneColour"..side, s.colOuter); storeCol("stickDisplayColour"..side, s.colInner)
@@ -283,22 +325,162 @@ local function packDrone()
 	config.droneCollisionWidth, config.droneCollisionLength, config.droneCollisionHeight = droneWidth, droneLength, droneHeight
 	config.upThrottle, config.downThrottle, config.gravity = thrust, reverseThrust, gravityStrength
 	config.horizontalThrottle, config.surfaceFriction, config.droneHitbox, config.grandEffect = horizontalThrust, surfaceFriction, hitboxEnabled, grandEffect
+	config.overallSensitivity, config.fullStickSpeed, config.centerSoftness = overallSensitivity, fullStickSpeed, centerSoftness
 end
 local function packCamera()
 	config.viewAngleUp, config.viewAngleUpClassic, config.fieldOfView, config.showNameTags = pitchOffsetFpv, pitchOffsetClassic, fOV, showNameTags
 	config.speedFov, config.osdWobble, config.cameraSmoothness, config.smoothness = speedFov, osdWobble, cameraSmooth, cameraSmoothAmount
+	if config.rotationSmoothness == nil then config.rotationSmoothness = 0.12 end
+end
+local function packRendering()
+	config.showNameTags, config.hideNearestHead = showNameTags, hideNearestHead
+	config.placeBallHereVisuals, config.scrapRunSpinners, config.goalExplosions = showBallPlaceVisuals, showScrapRunSpinners, showGoalExplosions
+end
+local function applyRendering()
+	showNameTags = cfg("showNameTags", true)
+	hideNearestHead = cfg("hideNearestHead", false)
+	showBallPlaceVisuals = cfg("placeBallHereVisuals", true)
+	showScrapRunSpinners = cfg("scrapRunSpinners", true)
+	showGoalExplosions = cfg("goalExplosions", false)
+end
+local function defaultRendering()
+	showNameTags, hideNearestHead = true, false
+	showBallPlaceVisuals, showScrapRunSpinners, showGoalExplosions = true, true, false
+end
+local function applyRenderFlags()
+	camera.showNameTags = showNameTags
+	camera.hideNearestHead = hideNearestHead
+	if spectatorDebug then
+		spectatorDebug.placeBallHereVisuals = showBallPlaceVisuals
+		spectatorDebug.scrapRunSpinners = showScrapRunSpinners
+		spectatorDebug.goalExplosions = showGoalExplosions
+	end
 end
 local function packColours()
 	storeCol("centreCrosshair", colCH); storeCol("throttleBarOutline", colTBOut); storeCol("throttleBarFill", colTBFill)
 	storeCol("speedBarOutline", colSBOut); storeCol("speedBarFill", colSBFill)
 	saveStickCols("L", stickL); saveStickCols("R", stickR)
 end
+local function packSensitivity()
+	config.overallSensitivity, config.fullStickSpeed, config.centerSoftness = overallSensitivity, fullStickSpeed, centerSoftness
+end
+local function applyControls()
+	invertPitch, invertYaw, invertRoll = cfg("invertPitch", false), cfg("invertYaw", false), cfg("invertRoll", false)
+	invertThrottle, swapSticks, downThrottle = cfg("invertThrottle", false), cfg("swapLeftRightStickControls", false), cfg("allowDownThrottle", false)
+	classicDrone, swapTriggers, swapStickYTriggers = cfg("classicDrone", false), cfg("swapTriggers", false), cfg("swapLeftStickYAndTriggers", false)
+	invertClassicRoll, swapBumpersAndTriggers = cfg("invertClassicRoll", false), cfg("swapBumpersAndTriggers", false)
+	autoStabilize, autoStabilizeStrength = cfg("autoStabilization", false), cfg("autoStabilizationStrength", 10.0)
+	invertMouseX, invertMouseY = cfg("invertMouseX", false), cfg("invertMouseY", false)
+	useKeyboardMouse = cfg("useKeyboardMouse", false)
+	mouseSens, mouseYawSens, keyboardYawSens = cfg("mousePitchSensitivity", 0.200), cfg("mouseXSensitivity", 0.200), cfg("keyboardYawSensitivity", 0.600)
+	bindThrottleUp, bindThrottleDown = cfg("throttleUpKey", "W"), cfg("throttleDownKey", "S")
+	bindYawLeft, bindYawRight = cfg("yawLeftKey", "A"), cfg("yawRightKey", "D")
+	bindMoveForward, bindMoveBack = cfg("moveForwardKey", "W"), cfg("moveBackKey", "S")
+	bindMoveLeft, bindMoveRight = cfg("moveLeftKey", "A"), cfg("moveRightKey", "D")
+	bindVertUp, bindVertDown = cfg("upKey", "SpaceBar"), cfg("downKey", "LeftControl")
+	bindSavePos, bindRespawn, bindHitboxOff = cfg("savePositionKey", ""), cfg("respawnDroneKey", ""), cfg("tempDisableHitboxKey", "")
+	bindTempStab, bindToggleOsd = cfg("tempStabilizationKey", ""), cfg("toggleAllOsdKey", "")
+	controllerRollSens, showOsd = cfg("rollSensitivity", 0.750), cfg("toggleAllOsd", true)
+	waitingBind = nil
+end
+local function defaultControls()
+	invertPitch, invertYaw, invertRoll, invertThrottle, swapSticks, downThrottle = false, false, false, false, false, false
+	classicDrone, swapTriggers, swapStickYTriggers, invertClassicRoll, swapBumpersAndTriggers = false, false, false, false, false
+	autoStabilize, autoStabilizeStrength = false, 10.0
+	useKeyboardMouse, invertMouseX, invertMouseY = false, false, false
+	mouseSens, mouseYawSens, keyboardYawSens = 0.200, 0.200, 0.600
+	bindThrottleUp, bindThrottleDown, bindYawLeft, bindYawRight = "W", "S", "A", "D"
+	bindMoveForward, bindMoveBack, bindMoveLeft, bindMoveRight = "W", "S", "A", "D"
+	bindVertUp, bindVertDown = "SpaceBar", "LeftControl"
+	bindSavePos, bindRespawn, bindHitboxOff, bindTempStab, bindToggleOsd = "", "", "", "", ""
+	controllerRollSens, showOsd = 0.750, true
+	waitingBind = nil
+end
+local function applyOsd()
+	showCrosshair = cfg("showCentreCrosshair", true)
+	crosshairHSize, crosshairVSize, crosshairThick, crosshairRot = cfg("crosshairHorizontalSize", 6.0), cfg("crosshairVerticalSize", 3.3), cfg("crosshairThickness", 1.35), cfg("crosshairRotation", 0)
+	showThrottleBar, throttleWidth, throttleHeight = cfg("showThrottleBar", true), cfg("throttleBarWidth", 122.0), cfg("throttleBarHeight", 6.2)
+	throttleOffX, throttleOffY, throttleThick, throttleRot = cfg("throttleBarHorizontalOffset", 0.0), cfg("throttleBarVerticalOffset", 80.0), cfg("throttleBarOutlineThickness", 2.0), cfg("throttleBarRotation", 0)
+	showSpeedBar, speedWidth, speedHeight = cfg("showSpeedBar", true), cfg("speedBarWidth", 122.0), cfg("speedBarHeight", 6.2)
+	speedOffX, speedOffY, speedThick, speedRot, topSpeed = cfg("speedBarHorizontalOffset", 0.0), cfg("speedBarVerticalOffset", 71.0), cfg("speedBarOutlineThickness", 2.0), cfg("speedBarRotation", 0), cfg("topSpeed", 7500)
+	showOsd = cfg("toggleAllOsd", true)
+	stickL, stickR = makeStick("L"), makeStick("R")
+end
+local function defaultOsd()
+	showCrosshair, crosshairHSize, crosshairVSize, crosshairThick, crosshairRot = true, 6.0, 3.3, 1.35, 0
+	showThrottleBar, throttleWidth, throttleHeight, throttleOffX, throttleOffY, throttleThick, throttleRot = true, 122.0, 6.2, 0.0, 80.0, 2.0, 0
+	showSpeedBar, speedWidth, speedHeight, speedOffX, speedOffY, speedThick, speedRot, topSpeed = true, 122.0, 6.2, 0.0, 71.0, 2.0, 0, 7500
+	showOsd = true
+	resetStick(stickL); resetStick(stickR)
+end
+local function applySensitivity()
+	overallSensitivity, fullStickSpeed, centerSoftness = cfg("overallSensitivity", 1.2), cfg("fullStickSpeed", 0.15), cfg("centerSoftness", 0.07)
+end
+local function defaultSensitivity()
+	overallSensitivity, fullStickSpeed, centerSoftness = 1.2, 0.15, 0.07
+end
+local function applyDrone()
+	droneWidth, droneLength, droneHeight = cfg("droneCollisionWidth", 9), cfg("droneCollisionLength", 9), cfg("droneCollisionHeight", 4)
+	thrust, reverseThrust, gravityStrength = cfg("upThrottle", 4000), cfg("downThrottle", 3000), cfg("gravity", 1500)
+	horizontalThrust, surfaceFriction, hitboxEnabled, grandEffect = cfg("horizontalThrottle", 1500), cfg("surfaceFriction", 0.200), cfg("droneHitbox", true), cfg("grandEffect", true)
+	overallSensitivity, fullStickSpeed, centerSoftness = cfg("overallSensitivity", 1.2), cfg("fullStickSpeed", 0.15), cfg("centerSoftness", 0.07)
+end
+local function defaultDrone()
+	droneWidth, droneLength, droneHeight, thrust, reverseThrust, gravityStrength = 9, 9, 4, 4000, 3000, 1500
+	horizontalThrust, surfaceFriction, hitboxEnabled, grandEffect = 1500, 0.200, true, true
+	overallSensitivity, fullStickSpeed, centerSoftness = 1.2, 0.15, 0.07
+end
+local function applyCamera()
+	pitchOffsetFpv, pitchOffsetClassic, fOV, showNameTags = cfg("viewAngleUp", 30), cfg("viewAngleUpClassic", 0), cfg("fieldOfView", 105), cfg("showNameTags", true)
+	speedFov, osdWobble, cameraSmooth, cameraSmoothAmount = cfg("speedFov", false), cfg("osdWobble", false), cfg("cameraSmoothness", false), math.clamp(cfg("smoothness", 0.12), 0.01, 0.50)
+	if config.rotationSmoothness == nil then config.rotationSmoothness = 0.12 end
+	config.rotationSmoothness = math.clamp(config.rotationSmoothness, 0.01, 0.50)
+end
+local function defaultCamera()
+	pitchOffsetFpv, pitchOffsetClassic, fOV, showNameTags, speedFov, osdWobble = 30, 0, 105, true, false, false
+	cameraSmooth, cameraSmoothAmount = false, 0.12
+	config.rotationSmoothness = 0.12
+end
+local function applyColours()
+	colCH = {cfg("centreCrosshair_R", 1), cfg("centreCrosshair_G", 1), cfg("centreCrosshair_B", 1)}
+	colTBOut = {cfg("throttleBarOutline_R", 1), cfg("throttleBarOutline_G", 1), cfg("throttleBarOutline_B", 1)}
+	colTBFill = {cfg("throttleBarFill_R", 0.40), cfg("throttleBarFill_G", 0.70), cfg("throttleBarFill_B", 1)}
+	colSBOut = {cfg("speedBarOutline_R", 1), cfg("speedBarOutline_G", 1), cfg("speedBarOutline_B", 1)}
+	colSBFill = {cfg("speedBarFill_R", 0.45), cfg("speedBarFill_G", 1), cfg("speedBarFill_B", 0.45)}
+	stickL.colOuter = {cfg("zoneColourL_R", 1), cfg("zoneColourL_G", 1), cfg("zoneColourL_B", 1)}
+	stickL.colInner = {cfg("stickDisplayColourL_R", 1), cfg("stickDisplayColourL_G", 1), cfg("stickDisplayColourL_B", 1)}
+	stickL.colCross = {cfg("stickCrosshairColourL_R", 1), cfg("stickCrosshairColourL_G", 1), cfg("stickCrosshairColourL_B", 1)}
+	stickL.colLine = {cfg("stickLineColourL_R", 1), cfg("stickLineColourL_G", 1), cfg("stickLineColourL_B", 1)}
+	stickR.colOuter = {cfg("zoneColourR_R", 1), cfg("zoneColourR_G", 1), cfg("zoneColourR_B", 1)}
+	stickR.colInner = {cfg("stickDisplayColourR_R", 1), cfg("stickDisplayColourR_G", 1), cfg("stickDisplayColourR_B", 1)}
+	stickR.colCross = {cfg("stickCrosshairColourR_R", 1), cfg("stickCrosshairColourR_G", 1), cfg("stickCrosshairColourR_B", 1)}
+	stickR.colLine = {cfg("stickLineColourR_R", 1), cfg("stickLineColourR_G", 1), cfg("stickLineColourR_B", 1)}
+end
+local function defaultColours()
+	colCH, colTBOut, colTBFill = {1, 1, 1}, {1, 1, 1}, {0.40, 0.70, 1}
+	colSBOut, colSBFill = {1, 1, 1}, {0.45, 1, 0.45}
+	resetStickCols(stickL); resetStickCols(stickR)
+end
+local function applyAll()
+	applyControls(); applyOsd(); applySensitivity(); applyDrone(); applyCamera(); applyRendering(); applyColours()
+end
+local function defaultAll()
+	defaultControls(); defaultOsd(); defaultSensitivity(); defaultDrone(); defaultCamera(); defaultRendering(); defaultColours()
+end
+local function tabButtons(label, packFn, applyFn, defaultFn)
+	Gui.newLine()
+	if Gui.button(Icon.Save .. " Save "..label) then packFn(); saveConfig() end
+	Gui.sameLine()
+	if Gui.button(Icon.Undo .. " Reset "..label) then applyFn() end
+	Gui.sameLine()
+	if Gui.button(Icon.Undo .. " Reset Default") then defaultFn() end
+end
 local function stickColourGui(title, s, side)
 	if not Gui.collapsingHeader(title) then return end
-	rgbRow(side.." Zone", s.colOuter, {0.95, 0.95, 0.95}); Gui.newLine()
-	rgbRow(side.." Stick Display", s.colInner, {0.95, 0.95, 0.95}); Gui.newLine()
-	rgbRow(side.." Stick Crosshair", s.colCross, {0.95, 0.95, 0.95}); Gui.newLine()
-	rgbRow(side.." Stick Line", s.colLine, {0.70, 0.70, 1.00})
+	saveTo(side.." Zone", s.colOuter)
+	saveTo(side.." Stick Display", s.colInner)
+	saveTo(side.." Stick Crosshair", s.colCross)
+	saveTo(side.." Stick Line", s.colLine)
 end
 local function keyEnum(name)
 	return (name and name ~= "" and Input.Key and Input.Key[name]) or nil
@@ -521,26 +703,23 @@ local function getMappedInputs()
 	if invertPitch then pitchIn = -pitchIn end
 	return yawIn, thrIn, rollIn, pitchIn, lx, ly, rx, ry, 0, 0
 end
-function onGui()
-	pollNewBind()
+local function drawGlobalButtons()
 	if Gui.button(Icon.Save .. " Save All") then
-		packControls(); packOsd(); packDrone(); packCamera(); packColours()
-		config.overallSensitivity, config.fullStickSpeed, config.centerSoftness = overallSensitivity, fullStickSpeed, centerSoftness
+		packControls(); packOsd(); packDrone(); packCamera(); packRendering(); packColours()
 		saveConfig()
 		originalConfig = table.clone(config)
 	end
 	Gui.sameLine()
-	if Gui.button(Icon.Undo .. " Reset") then if originalConfig then config = table.clone(originalConfig) end end
-	Gui.sameLine()
-	if Gui.button(Icon.Undo .. " Reset Defaults") then
-		showOsd, controllerRollSens = true, 0.750
-		bindToggleOsd, bindTempStab = "", ""
-		classicDrone, autoStabilize, autoStabilizeStrength = false, false, 10.0
-		swapBumpersAndTriggers, swapTriggers, swapStickYTriggers = false, false, false
-		useKeyboardMouse, downThrottle = false, false
-		showCrosshair, showThrottleBar, showSpeedBar = true, true, true
-		cameraSmooth, cameraSmoothAmount, speedFov, osdWobble = false, 0.12, false, false
+	if Gui.button(Icon.Undo .. " Reset") then
+		if originalConfig then config = table.clone(originalConfig) end
+		applyAll()
 	end
+	Gui.sameLine()
+	if Gui.button(Icon.Undo .. " Reset Defaults") then defaultAll() end
+end
+function onGui()
+	pollNewBind()
+	drawGlobalButtons()
 	Gui.newLine()
 	if not Gui.beginTabBar("MainTabs") then return end
 	if Gui.beginTabItem("Controls") then
@@ -683,21 +862,7 @@ function onGui()
 				waitingBind = nil
 			end
 		end
-		Gui.newLine()
-		if Gui.button(Icon.Save .. " Save Controls") then packControls(); saveConfig() end
-		if Gui.button(Icon.Undo .. " Reset Controls") then
-			invertPitch, invertYaw, invertRoll, invertThrottle, swapSticks, downThrottle = false, false, false, false, false, false
-			classicDrone, swapTriggers, swapStickYTriggers, invertClassicRoll, swapBumpersAndTriggers = false, false, false, false, false
-			autoStabilize, autoStabilizeStrength = false, 10.0
-			useKeyboardMouse, mouseSens, mouseYawSens, keyboardYawSens = false, 0.200, 0.200, 0.600
-			invertMouseX, invertMouseY = false, false
-			bindThrottleUp, bindThrottleDown, bindYawLeft, bindYawRight = "W", "S", "A", "D"
-			bindMoveForward, bindMoveBack, bindMoveLeft, bindMoveRight = "W", "S", "A", "D"
-			bindVertUp, bindVertDown = "SpaceBar", "LeftControl"
-			bindSavePos, bindRespawn, bindHitboxOff, bindTempStab, bindToggleOsd = "", "", "", "", ""
-			controllerRollSens, showOsd = 0.750, true
-			waitingBind = nil
-		end
+		tabButtons("Controls", packControls, applyControls, defaultControls)
 		Gui.endTabItem()
 	end
 	if Gui.beginTabItem("On Screen Display") then
@@ -736,39 +901,20 @@ function onGui()
 		end
 		stickGui("Left Stick", stickL, "L")
 		stickGui("Right Stick", stickR, "R")
-		Gui.newLine()
-		if Gui.button(Icon.Save .. " Save OSD") then packOsd(); saveConfig() end
-		if Gui.button(Icon.Undo .. " Reset OSD") then
-			showCrosshair, crosshairHSize, crosshairVSize, crosshairThick, crosshairRot = true, 6.0, 3.3, 1.35, 0
-			showThrottleBar, throttleWidth, throttleHeight, throttleOffX, throttleOffY, throttleThick, throttleRot = true, 122.0, 6.2, 0.0, 80.0, 2.0, 0
-			showSpeedBar, speedWidth, speedHeight, speedOffX, speedOffY, speedThick, speedRot, topSpeed = true, 122.0, 6.2, 0.0, 71.0, 2.0, 0, 7500
-			showOsd = true
-			resetStick(stickL); resetStick(stickR)
-		end
-		Gui.endTabItem()
-	end
-	if Gui.beginTabItem("Sensitivity") then
-		Gui.text("These only change how the sticks turn the drone. They do not change thrust or FOV.")
-		Gui.text("If the drone turns too quickly at full stick, lower Full-Stick Speed. That is the end of the sensitivity curve.")
-		Gui.newLine()
-		overallSensitivity = sliderR("Overall Sensitivity", overallSensitivity, 0, 2.5, 1.2, "overallSens")
-		Gui.setItemTooltip("How fast the drone rotates for any stick movement. Higher = faster everywhere.")
-		fullStickSpeed = fullStickSlider(fullStickSpeed)
-		Gui.setItemTooltip("Extra speed only near full stick. Center stays similar; the ends get snappier.")
-		centerSoftness = sliderR("Center Softness", centerSoftness, 0, 0.2, 0.07, "centerSoft")
-		Gui.setItemTooltip("Softens small stick movements for finer aim. Does not change the maximum speed.")
-		if Gui.button(Icon.Undo .. " Def Rate") then
-			overallSensitivity, fullStickSpeed, centerSoftness = 1.2, 0.15, 0.07
-			config.overallSensitivity, config.fullStickSpeed, config.centerSoftness = overallSensitivity, fullStickSpeed, centerSoftness
-			saveConfig()
-		end
-		if Gui.button(Icon.Save .. "Save Rate") then
-			config.overallSensitivity, config.fullStickSpeed, config.centerSoftness = overallSensitivity, fullStickSpeed, centerSoftness
-			saveConfig()
-		end
+		tabButtons("OSD", packOsd, applyOsd, defaultOsd)
 		Gui.endTabItem()
 	end
 	if Gui.beginTabItem("Drone Settings") then
+		if Gui.collapsingHeader("Sensitivity") then
+			Gui.text("These only change how the sticks turn the drone. They do not change thrust or FOV.")
+			Gui.text("If the drone turns too quickly at full stick, lower Full-Stick Speed. That is the end of the sensitivity curve.")
+			overallSensitivity = sliderR("Overall Sensitivity", overallSensitivity, 0, 2.5, 1.2, "overallSens")
+			Gui.setItemTooltip("How fast the drone rotates for any stick movement. Higher = faster everywhere.")
+			fullStickSpeed = fullStickSlider(fullStickSpeed)
+			Gui.setItemTooltip("Extra speed only near full stick. Center stays similar; the ends get snappier.")
+			centerSoftness = sliderR("Center Softness", centerSoftness, 0, 0.2, 0.07, "centerSoft")
+			Gui.setItemTooltip("Softens small stick movements for finer aim. Does not change the maximum speed.")
+		end
 		if Gui.collapsingHeader("Throttle") then
 			thrust = thrustSlider("Up Throttle", thrust, 0, 10000, 4000, "thrust")
 			Gui.setItemTooltip("Up / down power. In Classic Drone this is halved.")
@@ -790,12 +936,7 @@ function onGui()
 			grandEffect = Gui.checkbox("GrandEffect", grandEffect)
 			Gui.text("      The closer you are to the ground, the more extra boost you get.")
 		end
-		if Gui.button(Icon.Undo .. " Def setting##foo1") then
-			droneWidth, droneLength, droneHeight, thrust, reverseThrust, gravityStrength = 9, 9, 4, 4000, 3000, 1500
-			horizontalThrust, surfaceFriction, hitboxEnabled, grandEffect = 1500, 0.200, true, true
-			packDrone(); saveConfig()
-		end
-		if Gui.button(Icon.Save .. "Save Setting##foo1") then packDrone(); saveConfig() end
+		tabButtons("Drone Settings", packDrone, applyDrone, defaultDrone)
 		Gui.endTabItem()
 	end
 	if Gui.beginTabItem("Camera Settings") then
@@ -818,45 +959,55 @@ function onGui()
 		if cameraSmooth then
 			Gui.text("      ")
 			Gui.sameLine()
-			cameraSmoothAmount = sliderR("Smoothness", cameraSmoothAmount, 0.01, 0.50, 0.12, "camSmooth")
+			cameraSmoothAmount = sliderR("Movement Smoothness", cameraSmoothAmount, 0.01, 0.50, 0.12, "camSmooth")
+			Gui.text("      ")
+			Gui.sameLine()
+			if config.rotationSmoothness == nil then config.rotationSmoothness = 0.12 end
+			config.rotationSmoothness = sliderR("Rotation Smoothness", config.rotationSmoothness, 0.01, 0.50, 0.12, "camRotSmooth")
 		end
-		if Gui.button(Icon.Undo .. " Def setting##foo2") then
-			pitchOffsetFpv, pitchOffsetClassic, fOV, showNameTags, speedFov, osdWobble = 30, 0, 105, true, false, false
-			cameraSmooth, cameraSmoothAmount = false, 0.12
-			packCamera(); saveConfig()
-		end
-		if Gui.button(Icon.Save .. "Save Setting##foo2") then packCamera(); saveConfig() end
+		tabButtons("Camera Settings", packCamera, applyCamera, defaultCamera)
 		Gui.endTabItem()
 	end
 	if Gui.beginTabItem("Colour") then
-		if Gui.collapsingHeader("Crosshair") then rgbRow("Centre Crosshair", colCH, {0.95, 0.95, 0.95}) end
+		Gui.text("Set the picker, then Apply it to an item.")
+		drawPicker()
+		Gui.newLine()
+		if Gui.collapsingHeader("Crosshair") then
+			saveTo("Centre Crosshair", colCH)
+		end
 		if Gui.collapsingHeader("Throttle Bar") then
-			rgbRow("Throttle Outline", colTBOut, {1.0, 1.0, 1.0}); Gui.newLine()
-			rgbRow("Throttle Fill", colTBFill, {0.40, 0.70, 1.0})
+			saveTo("Throttle Outline", colTBOut)
+			saveTo("Throttle Fill", colTBFill)
 		end
 		if Gui.collapsingHeader("Speed Bar") then
-			rgbRow("Speed Outline", colSBOut, {1.0, 1.0, 1.0}); Gui.newLine()
-			rgbRow("Speed Fill", colSBFill, {0.55, 1.00, 0.55})
+			saveTo("Speed Outline", colSBOut)
+			saveTo("Speed Fill", colSBFill)
 		end
 		stickColourGui("Left Stick", stickL, "Left")
 		stickColourGui("Right Stick", stickR, "Right")
-		Gui.newLine()
-		if Gui.button(Icon.Save .. " Save Colours") then packColours(); saveConfig() end
-		if Gui.button(Icon.Undo .. " Reset Colours") then
-			colCH, colTBOut, colTBFill = {0.95, 0.95, 0.95}, {1.0, 1.0, 1.0}, {0.40, 0.70, 1.0}
-			colSBOut, colSBFill = {1.0, 1.0, 1.0}, {0.55, 1.00, 0.55}
-			resetStickCols(stickL); resetStickCols(stickR)
-		end
+		tabButtons("Colours", packColours, applyColours, defaultColours)
+		Gui.endTabItem()
+	end
+	if Gui.beginTabItem("Rendering") then
+		Gui.text("These use the Spectator render flags. Players and other spectator cameras cannot be hidden from scripts.")
+		showNameTags = Gui.checkbox("Name tags", showNameTags)
+		hideNearestHead = Gui.checkbox("Hide nearest head", hideNearestHead)
+		showBallPlaceVisuals = Gui.checkbox("Ball place visuals", showBallPlaceVisuals)
+		showScrapRunSpinners = Gui.checkbox("Scrap Run spinners", showScrapRunSpinners)
+		showGoalExplosions = Gui.checkbox("Goal explosions", showGoalExplosions)
+		tabButtons("Rendering", packRendering, applyRendering, defaultRendering)
 		Gui.endTabItem()
 	end
 	Gui.endTabBar()
 end
 function Start()
+	if originalConfig == nil then originalConfig = table.clone(config) end
 	currentFov, hudFov = fOV, fOV
 	camera.fieldOfView = currentFov
 	camera.fieldOfViewSmoothing = 0
 	dronePos = defPosition
 	visCamPos = defPosition
+	lastFreePos = defPosition
 	camera.position = defPosition
 	camera.rotation = defRotation
 end
@@ -911,11 +1062,12 @@ end
 local function drawCircleAt(camPos, camRot, distance, ox, oy, radius, segments, thickness, col, rotDeg)
 	local f, r, u = camRot:getForwardVector(), camRot:getRightVector(), camRot:getUpVector()
 	local center = camPos + f * distance + r * ox - u * oy
-	local segs = math.max(math.floor(segments), 3)
+	local segs = math.max(math.floor(segments + 0.5), 3)
 	local spin = math.rad(rotDeg or 0)
+	local rad = math.max(radius - thickness * 0.5, 0.05)
 	local function pt(i)
 		local a = (i / segs) * math.pi * 2 + spin
-		return center + r * (math.cos(a) * radius) + u * (math.sin(a) * radius)
+		return center + r * (math.cos(a) * rad) + u * (math.sin(a) * rad)
 	end
 	local prev = pt(0)
 	for i = 1, segs do
@@ -934,7 +1086,7 @@ local function drawStickCrossAt(camPos, camRot, distance, ox, oy, hSize, vSize, 
 end
 local function drawStick(s, signX, ax, ay, camPos, camRot, hudDistance, lineDistance, lineScale, f, r, u, sc)
 	local outerR, innerR = outerRadiusBase * s.size * sc, innerRadiusBase * s.size * sc
-	local travel = math.max(outerR - innerR, 0)
+	local travel = math.max(outerR - innerR - (s.outerThick + s.innerThick) * 0.5 * sc, 0)
 	local bx, by = signX * s.offX * sc, s.offY * sc
 	local ix, iy = bx + ax * travel, by - ay * travel
 	local a = camPos + f * lineDistance + r * (bx * lineScale) - u * (by * lineScale)
@@ -1056,6 +1208,15 @@ local function droneMovement(dt: number)
 	local obbC = dronePos
 	local obbA = {droneRotation:getRightVector(), droneRotation:getUpVector(), droneRotation:getForwardVector()}
 	local obbE = {droneWidth * 2.1, droneHeight * 2.1, droneLength * 2.1}
+	local worldUp = gravity.upDirection
+	local function restFor(n)
+		if n:dot(worldUp) > 0.55 then return 1.05 end
+		return 1.35
+	end
+	local function faceOut(n, hitPos)
+		if lastFreePos and (lastFreePos - hitPos):dot(n) < 0 then return n * -1 end
+		return n
+	end
 	local totalRef, hitCount, touching = Vec3.zeroVector, 0, false
 	if collisionEnabled and velMag > 0.0001 then
 		for i = 1, 8 do
@@ -1063,31 +1224,71 @@ local function droneMovement(dt: number)
 			local already = camera:castRay(oldPts[i] - (velDir * 2), collisionPoints[i])
 			local hit = camera:castRay(collisionPoints[i] - (velDir - rotD) * 100, collisionPoints[i])
 			if already.successful and not isInsideAnyGate(already.position) then
-				totalRef = (totalRef + (velocity - already.normal * (1.35 * velocity:dot(already.normal))) - rotD) * 0.98
+				local n = faceOut(already.normal, already.position)
+				local r = restFor(n)
+				totalRef = (totalRef + (velocity - n * (r * velocity:dot(n))) - rotD) * 0.98
 				hitCount += 1; touching = true
 			elseif hit.successful and not isInsideAnyGate(hit.position) and insideOBB(hit.position, obbC, obbA, obbE) then
-				totalRef = (totalRef + (velocity - hit.normal * (1.35 * velocity:dot(hit.normal)) + hit.normal * collisionPoints[i]:distance(hit.position)) - rotD) * 0.98
+				local n = faceOut(hit.normal, hit.position)
+				local r = restFor(n)
+				local kick = collisionPoints[i]:distance(hit.position)
+				if n:dot(worldUp) > 0.55 then kick *= 0.12 end
+				totalRef = (totalRef + (velocity - n * (r * velocity:dot(n)) + n * kick) - rotD) * 0.98
 				hitCount += 1; touching = true
 			end
 		end
 	end
 	if hitCount > 0 then velocity = totalRef / hitCount end
 	local desired = dronePos + velocity * dt
+	if lastFreePos == nil then lastFreePos = oldPos end
 	if collisionEnabled then
-		local moveHit = camera:castRay(oldPos, desired)
+		if lastFreePos:distance(oldPos) > 1 then
+			local trapped = camera:castRay(lastFreePos, oldPos)
+			if trapped.successful and not isInsideAnyGate(trapped.position) then
+				local n = faceOut(trapped.normal, trapped.position)
+				oldPos = trapped.position + n * 8.0
+				dronePos = oldPos
+				local vn = velocity:dot(n)
+				if vn < 0 then velocity -= n * vn * restFor(n) end
+				touching = true
+			end
+		end
+		desired = dronePos + velocity * dt
+		local moveHit = camera:castRay(lastFreePos, desired)
 		if moveHit.successful and not isInsideAnyGate(moveHit.position) then
-			desired = moveHit.position + moveHit.normal * 4.0
-			local vn = velocity:dot(moveHit.normal)
-			if vn < 0 then velocity -= moveHit.normal * vn * 1.35 end
+			local n = faceOut(moveHit.normal, moveHit.position)
+			desired = moveHit.position + n * 8.0
+			local vn = velocity:dot(n)
+			if vn < 0 then velocity -= n * vn * restFor(n) end
 			touching = true
 		end
-		local floorHit = camera:castRay(desired, desired + gravity.upDirection * -math.max(droneHeight * 2, 8))
-		if floorHit.successful and not isInsideAnyGate(floorHit.position) and desired:distance(floorHit.position) < droneHeight + 2 then
-			desired = floorHit.position + floorHit.normal * (droneHeight + 2)
+		for i = 1, 8 do
+			local corner = desired + droneRotation:rotateVector(localPts[i])
+			local ch = camera:castRay(lastFreePos, corner)
+			if ch.successful and not isInsideAnyGate(ch.position) then
+				local n = faceOut(ch.normal, ch.position)
+				local into = (ch.position + n * 8.0) - corner
+				if into:dot(n) > 0 then
+					desired = desired + n * into:dot(n)
+					local vn = velocity:dot(n)
+					if vn < 0 then velocity -= n * vn * restFor(n) end
+					touching = true
+				end
+			end
+		end
+		local noseDrop = math.abs(droneRotation:getForwardVector():dot(worldUp)) * droneLength
+		local sideDrop = math.abs(droneRotation:getRightVector():dot(worldUp)) * droneWidth
+		local floorClear = droneHeight + 2 + noseDrop + sideDrop
+		local floorHit = camera:castRay(desired, desired + worldUp * -math.max(floorClear + droneHeight, 8))
+		if floorHit.successful and not isInsideAnyGate(floorHit.position) and desired:distance(floorHit.position) < floorClear then
+			desired = floorHit.position + floorHit.normal * floorClear
 			local vn = velocity:dot(floorHit.normal)
 			if vn < 0 then velocity -= floorHit.normal * vn end
 			touching = true
 		end
+		if not touching then lastFreePos = desired end
+	else
+		lastFreePos = desired
 	end
 	if touching then velocity *= (1 / (1 + math.max(surfaceFriction, 0) * 0.8)) end
 	updateSpeedFov(dt)
@@ -1100,9 +1301,14 @@ local function droneMovement(dt: number)
 		local ht = math.max(cameraSmoothAmount * 0.28, 0.002)
 		local a = 1 - math.exp(-0.693147 / ht * math.max(dt, 0.0001))
 		visCamPos = visCamPos + (dronePos - visCamPos) * a
-		camera.position, camera.rotation = visCamPos, targetRot
+		local rht = math.max((config.rotationSmoothness or 0.12) * 0.28, 0.002)
+		local ra = 1 - math.exp(-0.693147 / rht * math.max(dt, 0.0001))
+		if config._visRot == nil then config._visRot = targetRot end
+		config._visRot = Quat.slerp(config._visRot, targetRot, ra)
+		camera.position, camera.rotation = visCamPos, config._visRot
 	else
 		visCamPos = dronePos
+		config._visRot = targetRot
 		camera.position, camera.rotation = dronePos, targetRot
 	end
 end
@@ -1112,11 +1318,12 @@ function tick(dt: number)
 	if MayStartFlag then Start() end
 	camera.positionSmoothing, camera.rotationSmoothing = 0, 0
 	camera.fieldOfViewSmoothing = 0
-	camera.showNameTags = showNameTags
+	applyRenderFlags()
 	postProcessSettings.depthOfFieldFocalDistance = 0
 	droneMovement(dt)
 	WorldDraw.clear()
-	local sc, hudD = hudFovScale(), 120.0
+	local hudD = 10.0
+	local sc = hudFovScale() * (hudD / 120.0)
 	local lineD, lineS = hudD + 1.5 * sc, (hudD + 1.5 * sc) / hudD
 	local p, rot = camera.position, camera.rotation
 	local osdDown = keyHeld(bindToggleOsd)
@@ -1152,6 +1359,7 @@ end
 function respawnDrone()
 	dronePos = config.position or Vec3.new(209, 2450, -28225)
 	visCamPos = dronePos
+	lastFreePos = dronePos
 	camera.position = dronePos
 	velocity = Vec3.zeroVector
 end
