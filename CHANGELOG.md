@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.0
+
+Partial rewrite to shorten and optimise the code. The script was re-implemented from scratch with the same controls,
+GUI, labels and saved-setting keys, so existing settings carry over. It's about 22% smaller (54.7 KB, 1,235 lines,
+was 69.9 KB, 1,365 lines). Settings are now table-driven and the GUI sections are generated from short descriptions.
+It's now licensed under GPL-3.0-only (see Licence below).
+
+Added
+- Gravity Assist for Classic mode: on/off toggle, Gravity Assist Strength (0 to 1, share of gravity cancelled) and
+  Perfect Assist (push straight up in world space: no tilt limit, no sideways drift)
+- Fall Acceleration in every mode (default 0.5): how fast a hands-off drone speeds up while falling, as a share of Gravity
+- Build tag shown next to the top buttons, to identify the installed build
+
+Changed
+- Surface Friction moved above Gravity in Drone Settings > Physics
+
+Fixed
+- Right-stick OSD dot now follows the thumb on a controller (up/down was shown flipped)
+- D-pad short taps (save position / respawn) no longer get missed between two ticks
+
+Licence
+- Licensed under GPL-3.0-only with NOTICE additional terms (keep the author attribution, mark modified versions).
+  Added LICENSE, NOTICE and `package.json` licence field
+- Archived versions before 2.0.0 are not covered by the new licence (see `archive/README.md`)
+- 1.1.2 moved to `archive/1.1.2/`
+
 ## 1.1.2
 
 Added
