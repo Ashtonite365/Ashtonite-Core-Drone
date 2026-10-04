@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-only
 -- Copyright (c) 2026 Ashtonite (Ashtonite365)
 -- @name Ashtonite.Core Drone
--- @version 2.0.0
+-- @version 2.1.0
 -- @credits Inspired by Scha's Drone Camera (Schafreu); developed with AI assistance (Grok Bot agents)
 -- @author Ashtonite365
 -- Unofficial community spectator camera script for Orion Drift.
@@ -14,7 +14,7 @@
 
 metadata = {
 	name = "Ashtonite.Core Drone",
-	description = "Acro and Classic FPV drone camera for Spectator (2.0.0)",
+	description = "Acro and Classic FPV drone camera for Spectator (2.1.0)",
 	author = "Ashtonite365",
 	defaultKeybind = "",
 }
@@ -23,7 +23,7 @@ metadata = {
 -- mouse response are applied per tick (not per second) on purpose, so the drone feels exactly like
 -- earlier versions at the same frame rate.
 
-local BUILD_TAG = "build: v2.0.0" -- shown read-only next to the top buttons, to identify installed builds
+local BUILD_TAG = "build: v2.1.0" -- shown read-only next to the top buttons, to identify installed builds
 local V, Q = Vec3.new, Quat.fromEuler
 local abs, max, min, exp, clamp = math.abs, math.max, math.min, math.exp, math.clamp
 local sin, cos, rad, sign = math.sin, math.cos, math.rad, math.sign
@@ -32,7 +32,7 @@ local ZERO = V(0, 0, 0)
 ---------------------------------------------------------------------------------------------------
 -- Settings. Every saved key, its default and slider range. Section codes (a key may be in several):
 --   C Controls, M M&K defaults button, O On Screen Display, o also reloaded by "Reset OSD",
---   D Drone Settings, K Camera Settings, L Colours, R Rendering.
+--   D Drone Settings, K Camera Settings, L Colours, R Rendering, G top bar (only the global buttons).
 type Setting = { key: string, default: any, lo: number, hi: number, div: number, sec: string }
 local SETTINGS: { Setting } = {}
 local DEF: { [string]: Setting } = {}
@@ -49,6 +49,7 @@ local function settings(sec: string, rows: { { any } }, prefix: string?, suffix:
 	end
 end
 
+settings("G", { { "numberBoxes", false } }) -- top bar: every slider drawn as a number box
 settings("C", {
 	{ "classicDrone", false }, { "autoStabilization", false }, { "autoStabilizationStrength", 10, 0, 30 },
 	{ "useKeyboardMouse", false }, { "allowDownThrottle", false }, { "invertPitch", false }, { "invertYaw", false },
@@ -839,6 +840,7 @@ local TIPS = {
 	upThrottle = "Up / down power. In Classic Drone this is halved.",
 	horizontalThrottle = "Forward / back / left / right power used only in Classic Drone.",
 	surfaceFriction = "How hard the drone slows when touching geometry",
+	numberBoxes = "Show every slider as a number box. Double-click (or Ctrl+click) a box to type an exact value, Enter to apply; it stays within the slider's range. Values carry over exactly. Saved by Save All.",
 	gravity = "The drone's weight in cm/s^2: what throttle, climbing and Gravity Assist work against (real gravity is 981).",
 	fallAcceleration = "How fast a hands-off drone speeds up while falling, in every mode, as a share of Gravity: 0.5 x 1500 = 750 cm/s^2, about 3/4 of real gravity. Air drag then caps the fall near 30 m/s after a few seconds. Classic: vertical throttle centred; only the weight Gravity Assist doesn't hold counts (strength 1 hovers, 0.5 falls half as hard). Acro: no thrust (throttle centred, or below centre unless Allow Down Throttle is on); any real thrust flies exactly as before. 0 = no fall.",
 	droneCollisionWidth = "xSize x2cm",
@@ -868,10 +870,21 @@ local function checkbox(key: string, label: string, tag: string?)
 		Gui.text(tag)
 	end
 end
+-- One value widget for every slider. Number Boxes on: a box showing the same number; double-click (or Ctrl+click)
+-- it to type an exact value (Dear ImGui's drag box). Drag speed is effectively zero so clicks never nudge it.
+-- Typed values snap to the slider's 0.001 display step and are clamped to its range; anything that isn't a
+-- number leaves the value as it was.
+local BOX_DRAG_SPEED = 1e-9
+local function valueWidget(id: string, shown: number, lo: number, hi: number): number
+	if not S.numberBoxes then return Gui.sliderFloat(id, shown, lo, hi) end
+	local typed = Gui.dragFloat(id, shown, BOX_DRAG_SPEED, lo, hi)
+	if typed == shown or typed ~= typed then return shown end
+	return clamp(math.round(typed * 1000) / 1000, lo, hi)
+end
 local function slider(key: string, label: string, tag: string?, rotButtons: boolean?, store: { [string]: any }?)
 	local t, d = store or S, DEF[key]
 	local shown = (t[key] or d.default) / d.div
-	local picked = Gui.sliderFloat(label .. "##" .. key, shown, d.lo / d.div, d.hi / d.div)
+	local picked = valueWidget(label .. "##" .. key, shown, d.lo / d.div, d.hi / d.div)
 	if picked ~= shown then t[key] = picked * d.div end
 	tip(key)
 	if rotButtons then
@@ -1216,6 +1229,8 @@ function onGui()
 	end
 	Gui.sameLine()
 	if Gui.button(Icon.Undo .. " Reset Defaults") then defaultSection(nil) end
+	Gui.sameLine()
+	checkbox("numberBoxes", "Number Boxes") -- outside the tabs; takes effect for every slider this frame
 	Gui.sameLine()
 	Gui.text(BUILD_TAG)
 	Gui.newLine()

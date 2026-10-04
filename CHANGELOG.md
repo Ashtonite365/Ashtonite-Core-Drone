@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0
+
+Added
+- Number Boxes toggle in the top bar, next to Save All / Reset / Reset Defaults: turns every slider in every tab into a
+  number box in one switch. Double-click (or Ctrl+click) a box to type an exact value, Enter to apply. Typed values stay
+  within the slider's range and keep its 0.001 step; anything that isn't a number is ignored. Values carry over exactly
+  when switching, and the R buttons, tooltips and show/hide rules work the same in both modes
+- New saved setting `numberBoxes` (default off). Saved by Save All, restored by Reset, turned off by Reset Defaults;
+  the per-tab Save / Reset buttons leave it alone
+
 ## 2.0.0
 
 Partial rewrite to shorten and optimise the code. The script was re-implemented from scratch with the same controls,
