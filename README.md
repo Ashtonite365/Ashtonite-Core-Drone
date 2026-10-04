@@ -4,7 +4,7 @@ Unofficial community Acro + Classic FPV drone camera script for Orion Drift Spec
 
 > **Disclaimer:** This product is not affiliated with Another Axiom Inc. or its videogames Gorilla Tag and Orion Drift and is not endorsed or otherwise sponsored by Another Axiom. Portions of the materials contained herein are property of Another Axiom. ©2025 Another Axiom Inc.
 
-**Current version: 2.1.0** (version lives here, in the changelog and in `package.json`, not in the filename)
+**Current version: 2.1.0**
 
 2.0.0 is an independent rewrite. It's shorter and optimised, with the same controls, GUI and saved settings.
 See [CHANGELOG.md](CHANGELOG.md).
@@ -31,12 +31,11 @@ Controls, On Screen Display, Drone Settings (includes Sensitivity), Camera Setti
 ## Credits
 
 - Author: **Ashtonite (Ashtonite365)**
-- **2.0.0 is an independent clean-room rewrite.** It was written from a description of how the drone behaves, not from
-  anyone else's code. A similarity check found no code in common with Another Axiom's default drone camera, and only a
-  handful of generic API lines in common with Scha's script.
+- **2.0.0 is an independent clean-room rewrite that is the base for all new versions.** It was written from a description of how the drone behaves, not from
+  anyone else's code.
 - Thanks to **Schafreu ("Scha")**: earlier versions (1.0.0 to 1.1.2, in `archive/`) were inspired by and built on
-  **Scha's Drone Camera** (`F1n_VR_FPV.luau`), which is itself based on Another Axiom's default Orion Drift drone camera.
-- Developed with AI assistance (Grok Bot agents).
+  **Scha's Drone Camera** (`FPV_Drone_Sim.luau`), which is itself based on Another Axiom's default Orion Drift drone camera.
+- Developed with AI assistance Grok.
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.  
 Older drops: [`archive/`](archive/).
