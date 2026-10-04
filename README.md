@@ -4,7 +4,7 @@ Unofficial community Acro + Classic FPV drone camera script for Orion Drift Spec
 
 > **Disclaimer:** This product is not affiliated with Another Axiom Inc. or its videogames Gorilla Tag and Orion Drift and is not endorsed or otherwise sponsored by Another Axiom. Portions of the materials contained herein are property of Another Axiom. ©2025 Another Axiom Inc.
 
-**Current version: 2.1.0**
+**Current version: 2.1.1**
 
 2.0.0 is an independent rewrite. It's shorter and optimised, with the same controls, GUI and saved settings.
 See [CHANGELOG.md](CHANGELOG.md).
@@ -13,11 +13,11 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 1. [Download Ashtonite.Core Drone.Luau](https://github.com/Ashtonite365/Ashtonite-Core-Drone/raw/main/Ashtonite.Core%20Drone.Luau)
 
-   Current version: **2.1.0**
+   Current version: **2.1.1**
 2. Put that file in `Documents\\Another-Axiom\\A2\\Cameras\\Behaviors`
 3. In Spectator, open Cameras (`F2`), **Reload All**, and activate **Ashtonite.Core Drone**
 
-The build tag next to the top buttons (`build: v2.1.0`) shows which build you have installed.
+The build tag next to the top buttons (`build: v2.1.1`) shows which build you have installed.
 
 ## Modes
 

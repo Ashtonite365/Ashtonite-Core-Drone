@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/AA-Franz/OD_SpectatorRegistry/refs/heads/main/src/package.schema.json",
   "name": "ashtonite.coredrone",
   "displayName": "Ashtonite.Core Drone",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Unofficial Acro and Classic FPV drone spectator camera for Orion Drift. Not affiliated with or endorsed by Another Axiom.",
   "main": "Ashtonite.Core Drone.Luau",
   "keywords": [

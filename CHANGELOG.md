@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.1
+
+Fixed
+- OSD (on-screen display) no longer disappears after switching to another camera and back. The near clipping plane was
+  inherited from the previous camera (for example Player Camera, Sideline or Freecam) and could sit at or past the OSD,
+  hiding some or all of it. Core Drone now sets it to 1 cm whenever it's higher
+- Flight and settings are unchanged (no new or renamed saved settings). Still standalone (no Camera Hub link)
+
+Archive
+- 2.1.0 moved to `archive/2.1.0/`
+
 ## 2.1.0
 
 Added

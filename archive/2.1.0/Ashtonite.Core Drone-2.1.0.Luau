@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-only
 -- Copyright (c) 2026 Ashtonite (Ashtonite365)
 -- @name Ashtonite.Core Drone
--- @version 2.1.1
+-- @version 2.1.0
 -- @credits Inspired by Scha's Drone Camera (Schafreu); developed with AI assistance (Grok Bot agents)
 -- @author Ashtonite365
 -- Unofficial community spectator camera script for Orion Drift.
@@ -14,12 +14,12 @@
 
 metadata = {
 	name = "Ashtonite.Core Drone",
-	description = "Acro and Classic FPV drone camera for Spectator (2.1.1)",
+	description = "Acro and Classic FPV drone camera for Spectator (2.1.0)",
 	author = "Ashtonite365",
 	defaultKeybind = "",
 }
 
-local BUILD_TAG = "build: v2.1.1"
+local BUILD_TAG = "build: v2.1.0"
 local V, Q = Vec3.new, Quat.fromEuler
 local abs, max, min, exp, clamp = math.abs, math.max, math.min, math.exp, math.clamp
 local sin, cos, rad, sign = math.sin, math.cos, math.rad, math.sign
@@ -583,7 +583,6 @@ local function flightStep(dt: number)
 end
 
 local HUD_DEPTH, DESIGN_TAN = 10, math.tan(rad(52.5))
-local OSD_NEAR_CLIP = 1
 local hudOrigin, hudF, hudR, hudU, hudScale = ZERO, ZERO, ZERO, ZERO, 1
 local rgbKeys: { [string]: { string } } = {}
 
@@ -718,7 +717,6 @@ local function applyView()
 	camera.positionSmoothing = 0
 	camera.rotationSmoothing = 0
 	camera.fieldOfViewSmoothing = 0
-	if not (camera.nearClippingPlane <= OSD_NEAR_CLIP) then camera.nearClippingPlane = OSD_NEAR_CLIP end
 	camera.showNameTags = S.showNameTags
 	camera.hideNearestHead = S.hideNearestHead
 	local dbg = spectatorDebug :: SpectatorDebug?
