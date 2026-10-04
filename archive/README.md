@@ -1,11 +1,12 @@
 # Archive
 
-Older script drops. Current release is the file on the repo root (2.0.0, an independent rewrite).
+Older script drops. Current release is the file on the repo root (2.1.0). 2.0.0 and later are an independent rewrite.
 
 - `1.0.0/` first public FPV+ drop
 - `1.1.0/` Classic mode, speed bar, stick OSD, speed FOV, camera smoothness
 - `1.1.1/` Sensitivity tab, throttle/display remaps, renamed save keys
 - `1.1.2/` last version before the 2.0.0 rewrite (smoothness sliders, Rendering tab, colour apply flow)
+- `2.0.0/` first release of the clean-room rewrite (Gravity Assist, Perfect Assist, Fall Acceleration, build tag). GPL-3.0-only, like the current release
 
 ## Licence and credits for archived versions (read first)
 

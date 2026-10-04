@@ -10,6 +10,9 @@ Added
 - New saved setting `numberBoxes` (default off). Saved by Save All, restored by Reset, turned off by Reset Defaults;
   the per-tab Save / Reset buttons leave it alone
 
+Archive
+- 2.0.0 moved to `archive/2.0.0/`
+
 ## 2.0.0
 
 Partial rewrite to shorten and optimise the code. The script was re-implemented from scratch with the same controls,
