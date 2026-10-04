@@ -19,24 +19,16 @@ metadata = {
 	defaultKeybind = "",
 }
 
--- NOTE on frame rate: drag, contact friction, the collision damping, the self-levelling cap and the
--- mouse response are applied per tick (not per second) on purpose, so the drone feels exactly like
--- earlier versions at the same frame rate.
-
-local BUILD_TAG = "build: v2.1.0" -- shown read-only next to the top buttons, to identify installed builds
+local BUILD_TAG = "build: v2.1.0"
 local V, Q = Vec3.new, Quat.fromEuler
 local abs, max, min, exp, clamp = math.abs, math.max, math.min, math.exp, math.clamp
 local sin, cos, rad, sign = math.sin, math.cos, math.rad, math.sign
 local ZERO = V(0, 0, 0)
 
----------------------------------------------------------------------------------------------------
--- Settings. Every saved key, its default and slider range. Section codes (a key may be in several):
---   C Controls, M M&K defaults button, O On Screen Display, o also reloaded by "Reset OSD",
---   D Drone Settings, K Camera Settings, L Colours, R Rendering, G top bar (only the global buttons).
 type Setting = { key: string, default: any, lo: number, hi: number, div: number, sec: string }
 local SETTINGS: { Setting } = {}
 local DEF: { [string]: Setting } = {}
-local S: { [string]: any } = {} -- live values
+local S: { [string]: any } = {}
 
 local function settings(sec: string, rows: { { any } }, prefix: string?, suffix: string?)
 	for _, r in rows do
@@ -49,7 +41,7 @@ local function settings(sec: string, rows: { { any } }, prefix: string?, suffix:
 	end
 end
 
-settings("G", { { "numberBoxes", false } }) -- top bar: every slider drawn as a number box
+settings("G", { { "numberBoxes", false } })
 settings("C", {
 	{ "classicDrone", false }, { "autoStabilization", false }, { "autoStabilizationStrength", 10, 0, 30 },
 	{ "useKeyboardMouse", false }, { "allowDownThrottle", false }, { "invertPitch", false }, { "invertYaw", false },
@@ -101,7 +93,7 @@ settings("D", {
 	{ "gravity", 1500, 0, 3000 }, { "fallAcceleration", 0.5, 0, 1 }, { "surfaceFriction", 0.2, 0, 1 },
 	{ "droneCollisionWidth", 9, 0, 100 }, { "droneCollisionLength", 9, 0, 100 }, { "droneCollisionHeight", 4, 0, 100 },
 	{ "droneHitbox", true }, { "grandEffect", true },
-	{ "gravityAssist", true }, { "gravityAssistStrength", 1, 0, 1 }, { "gravityAssistPerfect", false }, -- Classic only
+	{ "gravityAssist", true }, { "gravityAssistStrength", 1, 0, 1 }, { "gravityAssistPerfect", false },
 })
 settings("K", {
 	{ "viewAngleUp", 30, 0, 90 }, { "viewAngleUpClassic", 0, 0, 90 }, { "fieldOfView", 105, 0, 150 },
@@ -109,15 +101,13 @@ settings("K", {
 })
 settings("KR", { { "showNameTags", true } })
 settings("R", { { "hideNearestHead", false }, { "placeBallHereVisuals", true }, { "scrapRunSpinners", true }, { "goalExplosions", false } })
--- rotationSmoothness keeps its live value inside `config` itself, so it is in DEF (for the slider) but
--- not in SETTINGS (the generic load/save/default loops); the section helpers treat it separately.
 DEF.rotationSmoothness = { key = "rotationSmoothness", default = 0.12, lo = 0.01, hi = 0.5, div = 1, sec = "" }
 
 local function inSection(s: Setting, code: string?): boolean
 	return code == nil or string.find(s.sec, code) ~= nil
 end
 
-local function loadSection(code: string?) -- code may be a pattern such as "[Oo]"; nil = everything
+local function loadSection(code: string?)
 	for _, s in SETTINGS do
 		if inSection(s, code) then
 			local v = config[s.key]
@@ -153,27 +143,22 @@ end
 
 loadSection(nil)
 
----------------------------------------------------------------------------------------------------
--- Race gates. Ray hits inside these boxes are ignored so the drone can fly through the gates.
--- Axis-aligned gates, 4 numbers each: x, y, z of the corner, facing (1 -Y, 2 +Y, 3 +X, 4 -X).
 local GATES_AXIS = {
 	-521.518, 7628.015, -29632.256, 2,      -2153.015, 18027.914, -29630.484, 4,
 	2153.015, 19071.021, -29630.484, 3,     -2228.015, 26579.072, -29833.324, 4,
 	2230.015, 27620.953, -29833.324, 3,     -521.190, 24978.014, -28037.043, 2,
 	419.163, 27221.986, -31508.912, 1,
 }
--- Per facing: x from/to, y from/to (offsets from the corner), then the home box's x/y shift.
 local FACINGS = {
 	{ -252, 0, -30, 0, -800, 0 }, { 0, 252, 0, 30, 800, 0 }, { 0, 30, -252, 0, 0, -800 }, { -30, 0, 0, 252, 0, 800 },
 }
--- Driftplex gates, 6 numbers each: origin x, y, z, then roll, pitch, yaw in degrees.
 local GATES_TILTED = {
 	14678.619, 26927.014, -26464.400, 0, 30, 0,      14759.829, 22679.189, -26418.803, 30, 0, 90,
 	15497.991, 23717.449, -25989.279, -30, 0, -90,   14758.665, 13079.364, -26416.787, 30, 0, 90,
 	15499.341, 14118.737, -25991.615, -30, 0, -90,   14759.743, 5879.726, -26418.654, 30, 0, 90,
 	15499.302, 6921.189, -25991.549, -30, 0, -90,
 }
-local boxes: { number } = {} -- flat: minX, maxX, minY, maxY, minZ, maxZ per box (away and home boxes)
+local boxes: { number } = {}
 for i = 1, #GATES_AXIS, 4 do
 	local x, y, z, f = GATES_AXIS[i], GATES_AXIS[i + 1], GATES_AXIS[i + 2], FACINGS[GATES_AXIS[i + 3]]
 	for home = 0, 1 do
@@ -205,10 +190,6 @@ local function inGate(p: Vec3): boolean
 	return false
 end
 
----------------------------------------------------------------------------------------------------
--- Input. Two separate key tables that never cross: keyboard/mouse names (binds, Escape, LeftAlt,
--- mouse buttons) come from Input.Key; gamepad names (sticks, triggers, shoulders, D-pad) come from
--- Input.Gamepad. A name missing from its table reads as 0 / not held.
 local KEYBOARD: { [string]: any } = Input.Key :: any
 local GAMEPAD: { [string]: any } = (Input :: any).Gamepad or {}
 if GAMEPAD.LeftX == nil then warn("Core Drone: Input.Gamepad is unavailable, so controller input will read as zero.") end
@@ -222,27 +203,25 @@ local padWasTapped: { [string]: boolean } = {}
 local function truthy(v: any): boolean
 	return v ~= nil and v ~= false and v ~= 0
 end
-local function rising(memory: { [string]: boolean }, name: string, now: boolean): boolean -- own edge memory
+local function rising(memory: { [string]: boolean }, name: string, now: boolean): boolean
 	local before = memory[name]
 	memory[name] = now
 	return now and not before
 end
--- Keyboard / mouse (Input.Key). "" (unbound) never holds.
 local function keyHeld(name: string): boolean
 	local k = name ~= "" and KEYBOARD[name]
 	return k and truthy(Input.getKey(k)) or false
 end
-local function keyPressed(name: string): boolean -- engine's "this frame" query
+local function keyPressed(name: string): boolean
 	local k = name ~= "" and KEYBOARD[name]
 	return k and truthy(keyPressedNow(k)) or false
 end
 local function keyEdge(name: string): boolean
 	return rising(keyWasHeld, name, keyHeld(name))
 end
-local function keyAxis(posKey: string, negKey: string): number -- bound keyboard keys, by config key
+local function keyAxis(posKey: string, negKey: string): number
 	return (keyHeld(S[posKey]) and 1 or 0) - (keyHeld(S[negKey]) and 1 or 0)
 end
--- Gamepad (Input.Gamepad).
 local function padAxis(name: string): number
 	local k = GAMEPAD[name]
 	return k and Input.getAnalog(k) or 0
@@ -251,9 +230,7 @@ local function padHeld(name: string): boolean
 	local k = GAMEPAD[name]
 	return k and truthy(Input.getKey(k)) or false
 end
-local function padEdge(name: string): boolean -- checked every tick
-	-- A press = the engine's "pressed this frame" (catches a tap that goes down and up between two ticks), or
-	-- the held state turning on when that press wasn't already counted as a tap on the tick before.
+local function padEdge(name: string): boolean
 	local k = GAMEPAD[name]
 	local held = padHeld(name)
 	local tapped = k ~= nil and engineKeyDown ~= nil and truthy(engineKeyDown(k))
@@ -264,11 +241,11 @@ end
 local function bumperRoll(): number
 	return (padHeld("RightShoulder") and 1 or 0) - (padHeld("LeftShoulder") and 1 or 0)
 end
-local function trigger(side: string): number -- digital-or-analog trigger name first, then the *Axis one
+local function trigger(side: string): number
 	local v = padAxis(side .. "Trigger")
 	return if v == 0 then padAxis(side .. "TriggerAxis") else v
 end
-local function mouseAxes(): (number, number) -- per-frame delta, no dt scaling (see note at top)
+local function mouseAxes(): (number, number)
 	if not mouseDelta then return 0, 0 end
 	local d = mouseDelta()
 	local x = if S.invertMouseX then -d.x else d.x
@@ -276,9 +253,7 @@ local function mouseAxes(): (number, number) -- per-frame delta, no dt scaling (
 	return clamp(x * S.mouseXSensitivity, -1, 1), clamp(-y * S.mousePitchSensitivity, -1, 1)
 end
 
----------------------------------------------------------------------------------------------------
--- Flight state
-local LOAD_SPAWN, RESPAWN_FALLBACK = V(209, 2500, -28225), V(209, 2450, -28225) -- fallback is 50 cm lower
+local LOAD_SPAWN, RESPAWN_FALLBACK = V(209, 2500, -28225), V(209, 2450, -28225)
 local function savedPosition(): Vec3?
 	local p = config.position
 	if type(p) == "table" then return V(p.x or p.X or 0, p.y or p.Y or 0, p.z or p.Z or 0) end
@@ -286,14 +261,13 @@ local function savedPosition(): Vec3?
 end
 local spawnPoint = savedPosition() or LOAD_SPAWN
 local pos, vel, rot = spawnPoint, ZERO, Q(0, 0, 90)
-local camPos, camRot: Quat? = spawnPoint, nil -- smoothed camera state (rotation stays local, not in config)
+local camPos, camRot: Quat? = spawnPoint, nil
 local lastFree: Vec3? = nil
 local fov, hudFov, throttleShown = 105, 105, 0
-local sticks = { 0, 0, 0, 0 } -- lx, ly, rx, ry for the OSD, stick up / right = positive (raw, like LeftY)
+local sticks = { 0, 0, 0, 0 }
 local started, snapshot = false, nil :: { [any]: any }?
 local probeWas = false
 
--- Returns yaw, throttle, roll, pitch commands and the Classic strafe / forward axes.
 local function readControls(): (number, number, number, number, number, number)
 	local classic, kbm = S.classicDrone, S.useKeyboardMouse
 	local lx, ly, rx, ry, vertical, rollSource = 0, 0, 0, 0, 0, 0
@@ -314,7 +288,6 @@ local function readControls(): (number, number, number, number, number, number)
 			if S.swapBumpersAndTriggers then vertical, rollSource = bump, trig else vertical, rollSource = trig, bump end
 		end
 	end
-	-- OSD values: where the thumb or mouse went, before any invert option (flight uses lx..ry below as they are).
 	local showX, showY = rx, ry
 	if kbm then showX, showY = if S.invertMouseX then -rx else rx, if S.invertMouseY then -ry else ry end
 	sticks[1], sticks[2], sticks[3], sticks[4] = lx, ly, showX, showY
@@ -323,7 +296,7 @@ local function readControls(): (number, number, number, number, number, number)
 		moveX, moveY = lx, ly
 		if not kbm and S.swapLeftStickYAndTriggers then moveY, vertical = vertical, ly end
 		yaw, pitch, throttle, roll = rx, ry, vertical, rollSource * S.rollSensitivity
-		if S.invertRoll then moveX = -moveX end -- "Invert Strafe" in Classic
+		if S.invertRoll then moveX = -moveX end
 		if S.invertClassicRoll then roll = -roll end
 	else
 		moveX, moveY = 0, 0
@@ -340,9 +313,6 @@ local function readControls(): (number, number, number, number, number, number)
 	return yaw, throttle, roll, pitch, moveX, moveY
 end
 
--- Rate curve: degrees to turn this tick for a stick value. The curve's 200 units/s scale has always
--- been converted with pi/180 and then handed to the engine as degrees, so full rate is ~209.44 deg/s
--- times shape x boost x sensitivity (~296 deg/s at defaults). Kept as-is for the same feel.
 local TURN_SCALE = 200 * math.pi / 180 * 60
 local function turnDegrees(v: number, dt: number): number
 	local a, soft = abs(v), S.centerSoftness
@@ -354,30 +324,20 @@ end
 local function selfLevel(up: Vec3, strength: number, dt: number)
 	local f, r, u = rot:getForwardVector(), rot:getRightVector(), rot:getUpVector()
 	local axis = u:cross(up)
-	if axis:length() < 0.0008 and u:dot(up) < 0 then axis = f end -- upside down: pick a roll axis
+	if axis:length() < 0.0008 and u:dot(up) < 0 then axis = f end
 	local gain = strength * 8.5 * dt
-	local rollFix = clamp(-axis:dot(f) * gain, -0.45, 0.45) -- per-tick cap
+	local rollFix = clamp(-axis:dot(f) * gain, -0.45, 0.45)
 	local pitchFix = clamp(-axis:dot(r) * gain, -0.45, 0.45)
 	if abs(rollFix) > 0.0002 or abs(pitchFix) > 0.0002 then rot = rot * Q(rollFix, pitchFix, 0) end
 end
 
-local function flatten(v: Vec3, up: Vec3): (Vec3, number) -- component perpendicular to up, and its length
+local function flatten(v: Vec3, up: Vec3): (Vec3, number)
 	local p = v - up * v:dot(up)
 	return p, p:length()
 end
 
--- Classic hands-off fall (neutral vertical throttle, moving down, part of the weight unassisted). Gravity stays the
--- weight that thrust and Gravity Assist work against; while falling hands-off, idle rotor lift carries part of it,
--- so the drone speeds up at Fall Acceleration x the unassisted weight. Air drag on that fall is quadratic and
--- dt-correct (same fall at any frame rate): 1/12000 per cm gives 30 m/s terminal at the default 750 cm/s^2.
--- The hover brake on downward speed fades out as that fall acceleration grows and is gone from 375 cm/s^2, so
--- strength 1 (nothing unassisted) keeps the original brake exactly. Fall Acceleration 0 = idle lift carries it all.
--- Acro uses the same fall (world-vertical, attitude does not matter) whenever there is no thrust. Inside the idle
--- band (|throttle| under 0.1, i.e. under 1% of full thrust) the fall blends in by (1 - |t| / 0.1)^2, so touching
--- the throttle has no velocity jump; from 0.1 up the old Acro model runs unchanged.
 local FALL_DRAG, BRAKE_GONE_AT, ACRO_IDLE_BAND = 1 / 12000, 375, 0.1
 
--- Returns true when this tick was a hands-off fall, whose vertical speed then skips the per-tick drag.
 local function classicThrust(up: Vec3, up0: Vec3, vertical: number, moveX: number, moveY: number, dt: number): boolean
 	local fwd, fl = flatten(rot:getForwardVector(), up)
 	if fl < 0.0001 then
@@ -391,11 +351,7 @@ local function classicThrust(up: Vec3, up0: Vec3, vertical: number, moveX: numbe
 
 	local t = clamp(vertical, -1, 1)
 	throttleShown = t
-	-- Gravity Assist is the only gravity compensation in Classic; off = none (the drone sinks at neutral).
-	-- Normal: push along the drone's up axis (before this tick's rotation) while it is within ~78 deg of
-	-- upright, so a tilted drone leans and drifts. Perfect: push straight up in world space, with no
-	-- cutoff and no drift. Both are gravity x strength, dt-scaled like gravity.
-	local held = 0 -- share of the weight the assist holds up (its vertical part)
+	local held = 0
 	if S.gravityAssist then
 		local push = S.gravity * S.gravityAssistStrength * dt
 		if S.gravityAssistPerfect then
@@ -408,13 +364,13 @@ local function classicThrust(up: Vec3, up0: Vec3, vertical: number, moveX: numbe
 	end
 	local handsOffFall = false
 	if abs(t) < 0.04 then
-		local unheld = S.gravity * (1 - held) -- weight nothing holds up, cm/s^2
+		local unheld = S.gravity * (1 - held)
 		local fall = S.fallAcceleration * unheld
 		local vz = vel:dot(up)
 		if unheld > 0 and vz < 0 then
-			vz += (unheld - fall) * dt -- idle lift: only Fall Acceleration x the unheld weight is felt
-			local d = max(-vz, 0) * exp(-3.2 * max(1 - fall / BRAKE_GONE_AT, 0) ^ 2 * dt) -- fading hover brake
-			d = d / (1 + FALL_DRAG * d * dt) -- quadratic air drag, exact for this step
+			vz += (unheld - fall) * dt
+			local d = max(-vz, 0) * exp(-3.2 * max(1 - fall / BRAKE_GONE_AT, 0) ^ 2 * dt)
+			d = d / (1 + FALL_DRAG * d * dt)
 			vel -= up * (vel:dot(up) + d)
 			handsOffFall = true
 		else
@@ -432,23 +388,17 @@ local function classicThrust(up: Vec3, up0: Vec3, vertical: number, moveX: numbe
 	return handsOffFall
 end
 
--- Returns how idle the throttle is: 1 = no thrust (centre, or below centre without Allow Down Throttle) down to
--- 0 at the edge of the idle band and beyond.
 local function acroThrust(up0: Vec3, throttle: number, dt: number): number
 	local t = clamp(throttle, -1, 1)
 	if t < 0 and not S.allowDownThrottle then t = 0 end
 	throttleShown = t
-	local response = sign(t) * t * t -- squared, keeps the sign
+	local response = sign(t) * t * t
 	local accel = response * (if t < 0 then S.downThrottle else S.upThrottle)
-	-- "GrandEffect": earlier versions added at most 1 cm/s^2 x t^2 here (thrust is thousands of
-	-- cm/s^2), which nobody can feel. Kept at that same negligible size so the setting still exists.
 	if S.grandEffect then accel += response end
 	vel += up0 * (accel * dt)
 	return if abs(t) < ACRO_IDLE_BAND then (1 - abs(t) / ACRO_IDLE_BAND) ^ 2 else 0
 end
 
----------------------------------------------------------------------------------------------------
--- Collision
 local CORNERS = { 1, 1, 1, 1, 1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, 1, -1, -1, -1 }
 
 local function ray(from: Vec3, to: Vec3): RayHit?
@@ -457,19 +407,17 @@ local function ray(from: Vec3, to: Vec3): RayHit?
 	return nil
 end
 
-local function outward(h: RayHit): Vec3 -- normal flipped to face the last free position
+local function outward(h: RayHit): Vec3
 	local n, free = h.normal, lastFree
 	if free and (free - h.position):dot(n) < 0 then return -n end
 	return n
 end
 
--- Moves the drone for this tick and returns the resolved position. rotBefore = orientation before
--- this tick's rotation. Updates vel and lastFree.
 local function resolveMove(up: Vec3, rotBefore: Quat, collide: boolean, dt: number): Vec3
 	local start, touching = pos, false
 	local W, L, H = S.droneCollisionWidth, S.droneCollisionLength, S.droneCollisionHeight
 	local function bounciness(n: Vec3): number
-		return if n:dot(up) > 0.55 then 1.05 else 1.35 -- floors bounce less than walls
+		return if n:dot(up) > 0.55 then 1.05 else 1.35
 	end
 	local function stopInto(n: Vec3, k: number)
 		local into = vel:dot(n)
@@ -481,7 +429,6 @@ local function resolveMove(up: Vec3, rotBefore: Quat, collide: boolean, dt: numb
 		for i = 1, #CORNERS, 3 do table.insert(offsets, V(CORNERS[i] * W, CORNERS[i + 1] * L, CORNERS[i + 2] * H)) end
 	end
 
-	-- Stage 1: corner probes reshape the velocity.
 	local speed = vel:length()
 	if collide and speed > 0.0001 then
 		local dir = vel / speed
@@ -516,7 +463,6 @@ local function resolveMove(up: Vec3, rotBefore: Quat, collide: boolean, dt: numb
 		if hits > 0 then vel = total / hits end
 	end
 
-	-- Stage 2: sweep from the last free position and push out of geometry.
 	local free = lastFree or start
 	lastFree = free
 	local target = start + vel * dt
@@ -559,12 +505,10 @@ local function resolveMove(up: Vec3, rotBefore: Quat, collide: boolean, dt: numb
 	else
 		lastFree = target
 	end
-	if touching then vel *= 1 / (1 + max(S.surfaceFriction, 0) * 0.8) end -- per-tick contact friction
+	if touching then vel *= 1 / (1 + max(S.surfaceFriction, 0) * 0.8) end
 	return target
 end
 
----------------------------------------------------------------------------------------------------
--- Field of view and camera output
 local function easeFactor(rate: number, dt: number): number
 	return 1 - exp(-rate * dt)
 end
@@ -572,7 +516,6 @@ end
 local function updateFov(dt: number)
 	local base, target = S.fieldOfView, S.fieldOfView
 	if S.speedFov then
-		-- Ramps toward 132 deg (the real cap; a base FOV above 132 is held at 132).
 		local ramp = clamp((vel:length() - 400) / 3800, 0, 1) ^ 1.45
 		target = clamp(base + (132 - base) * ramp, min(base, 132), 132)
 	end
@@ -623,16 +566,14 @@ local function flightStep(dt: number)
 	local handsOffFall, idle = false, 0
 	if S.classicDrone then handsOffFall = classicThrust(up, up0, throttle, moveX, moveY, dt) else idle = acroThrust(up0, throttle, dt) end
 	local vz = vel:dot(up)
-	if handsOffFall then -- Classic: its vertical drag was dt-correct above; the rest gets the usual per-tick drag
+	if handsOffFall then
 		vel = (vel - up * vz) * 0.993 + up * vz
 	elseif idle > 0 and S.gravity > 0 and vz < 0 then
-		-- Acro hands-off fall: idle lift leaves Fall Acceleration x Gravity, then the dt-correct quadratic drag,
-		-- blended with the old per-tick drag by how idle the throttle is. Horizontal keeps the per-tick drag.
 		local d = max(-(vz + (1 - S.fallAcceleration) * S.gravity * dt), 0)
 		d = d / (1 + FALL_DRAG * d * dt)
 		vel = (vel - up * vz) * 0.993 + up * (vz * 0.993 * (1 - idle) - d * idle)
 	else
-		vel *= 0.993 -- per-tick air drag
+		vel *= 0.993
 	end
 
 	local resolved = resolveMove(up, rotBefore, collide, dt)
@@ -641,8 +582,6 @@ local function flightStep(dt: number)
 	pos = resolved
 end
 
----------------------------------------------------------------------------------------------------
--- On screen display: world-space lines 10 cm in front of the camera, designed at 105 deg FOV.
 local HUD_DEPTH, DESIGN_TAN = 10, math.tan(rad(52.5))
 local hudOrigin, hudF, hudR, hudU, hudScale = ZERO, ZERO, ZERO, ZERO, 1
 local rgbKeys: { [string]: { string } } = {}
@@ -656,7 +595,7 @@ local function colourOf(item: string): (number, number, number)
 	return S[k[1]], S[k[2]], S[k[3]]
 end
 
-local function keyset(prefix: string, suffix: string): { [string]: string } -- memoised key names
+local function keyset(prefix: string, suffix: string): { [string]: string }
 	return setmetatable({}, { __index = function(t: any, name: string)
 		local full = prefix .. name .. suffix
 		t[name] = full
@@ -666,7 +605,6 @@ end
 local BAR_KEYS = { keyset("throttleBar", ""), keyset("speedBar", "") }
 local STICK_KEYS = { keyset("", "L"), keyset("", "R") }
 
--- HUD units: x right, y down. depth lets a line sit behind others at the same screen spot.
 local function hudLine(x1: number, y1: number, x2: number, y2: number, width: number,
 	r: number, g: number, b: number, depth: number?)
 	local d = depth or HUD_DEPTH
@@ -678,7 +616,7 @@ end
 
 local function crosshair(cx: number, cy: number, halfW: number, halfH: number, width: number, degrees: number,
 	r: number, g: number, b: number)
-	local c, s = cos(rad(degrees)), sin(rad(degrees)) -- positive = clockwise on screen
+	local c, s = cos(rad(degrees)), sin(rad(degrees))
 	hudLine(cx - halfW * c, cy - halfW * s, cx + halfW * c, cy + halfW * s, width, r, g, b)
 	hudLine(cx + halfH * s, cy - halfH * c, cx - halfH * s, cy + halfH * c, width, r, g, b)
 end
@@ -688,7 +626,7 @@ local function ring(cx: number, cy: number, radius: number, segments: number, wi
 	local n = max(math.round(segments), 3)
 	local rr = max(radius - width / 2, 0.05)
 	local px, py
-	for i = 0, n do -- anticlockwise on screen, starting at screen-right
+	for i = 0, n do
 		local a = 2 * math.pi * i / n + rad(degrees)
 		local x, y = cx + rr * cos(a), cy - rr * sin(a)
 		if px then hudLine(px, py, x, y, width, r, g, b) end
@@ -764,8 +702,6 @@ local function drawOsd()
 	drawStick(STICK_KEYS[2], 1, sticks[3], sticks[4])
 end
 
----------------------------------------------------------------------------------------------------
--- Tick
 local function firstTick()
 	started = true
 	snapshot = snapshot or copyOf(config)
@@ -777,7 +713,7 @@ local function firstTick()
 	camera.rotation = Q(0, 0, 90)
 end
 
-local function applyView() -- engine smoothing off (we smooth ourselves), render flags, no DOF focus
+local function applyView()
 	camera.positionSmoothing = 0
 	camera.rotationSmoothing = 0
 	camera.fieldOfViewSmoothing = 0
@@ -797,7 +733,7 @@ local function positionKeys()
 	if keyPressed(S.savePositionKey) then save = true end
 	local respawn = padEdge("DPad_Right")
 	if keyPressed(S.respawnDroneKey) then respawn = true end
-	if save then config.position = pos end -- in memory; written by the next Save button
+	if save then config.position = pos end
 	if respawn then
 		local p = savedPosition() or RESPAWN_FALLBACK
 		pos, camPos, lastFree, vel = p, p, p, ZERO
@@ -812,7 +748,7 @@ function tick(dt: number)
 	flightStep(dt)
 	WorldDraw.clear()
 	drawOsd()
-	local probing = keyHeld("LeftAlt") and keyHeld("LeftMouseButton") -- Alt+click: log the world point once
+	local probing = keyHeld("LeftAlt") and keyHeld("LeftMouseButton")
 	if probing and not probeWas then
 		local hit = camera:castRayFromMouse()
 		if hit and hit.successful then debug("Core Drone: mouse ray hit at " .. tostring(hit.position)) end
@@ -821,9 +757,7 @@ function tick(dt: number)
 	positionKeys()
 end
 
----------------------------------------------------------------------------------------------------
--- GUI
-local capturing: string? = nil -- config key of the bind row waiting for a key
+local capturing: string? = nil
 local picker = LinearColor.new(1, 1, 1, 1)
 local BINDABLE = string.split("Zero One Two Three Four Five Six Seven Eight Nine SpaceBar LeftShift RightShift "
 	.. "LeftControl RightControl LeftAlt RightAlt Tab Up Down Left Right Enter CapsLock", " ")
@@ -870,10 +804,6 @@ local function checkbox(key: string, label: string, tag: string?)
 		Gui.text(tag)
 	end
 end
--- One value widget for every slider. Number Boxes on: a box showing the same number; double-click (or Ctrl+click)
--- it to type an exact value (Dear ImGui's drag box). Drag speed is effectively zero so clicks never nudge it.
--- Typed values snap to the slider's 0.001 display step and are clamped to its range; anything that isn't a
--- number leaves the value as it was.
 local BOX_DRAG_SPEED = 1e-9
 local function valueWidget(id: string, shown: number, lo: number, hi: number): number
 	if not S.numberBoxes then return Gui.sliderFloat(id, shown, lo, hi) end
@@ -903,7 +833,7 @@ end
 local function lines(list: { string })
 	for _, s in list do Gui.text(s) end
 end
-local function bindRows(list: { string }) -- pairs of config key, label
+local function bindRows(list: { string })
 	for i = 1, #list, 2 do
 		local key = list[i]
 		Gui.text(list[i + 1])
@@ -918,12 +848,6 @@ local function bindRows(list: { string }) -- pairs of config key, label
 	end
 end
 
--- Static GUI sections are written as short item strings, compiled once:
---   ""  blank line      "#text"  text        "^Title"  collapsing header (until the next ^)
---   "?key|Label"  checkbox     "=key|Label|tag"  slider + R     "@key|Label"  slider + 90/-90/R
---   "!colourKey|Label"  apply picker colour      a leading ">" indents the item. Leading "+"s nest it:
---   an item with n "+" shows only while the nearest checkbox above with n-1 "+" is shown and on.
--- "$X" is replaced from the vars table (used for the bar and stick templates).
 type Item = { op: string, a: string, b: string, c: string?, ind: boolean, depth: number }
 local function compile(src: { string }, vars: { [string]: string }?, into: { Item }?): { Item }
 	local out = into or {}
@@ -940,11 +864,11 @@ local function compile(src: { string }, vars: { [string]: string }?, into: { Ite
 end
 
 local function run(items: { Item })
-	local open, ticked = true, {} :: { [number]: boolean } -- ticked[d]: last depth-d checkbox shown and on
+	local open, ticked = true, {} :: { [number]: boolean }
 	local function setTicked(depth: number, on: boolean)
 		ticked[depth] = on
 		local k = depth + 1
-		while ticked[k] ~= nil do -- a new parent state invalidates its old children
+		while ticked[k] ~= nil do
 			ticked[k] = nil
 			k += 1
 		end
@@ -1054,7 +978,6 @@ local ACRO_BINDS = { "throttleUpKey", "Throttle Up", "throttleDownKey", "Throttl
 local DPAD_BINDS = { "savePositionKey", "Save Position", "respawnDroneKey", "Respawn Drone", "tempDisableHitboxKey",
 	"Temp Disable Hitbox", "tempStabilizationKey", "Temp Stabilization", "toggleAllOsdKey", "Toggle All OSD" }
 
--- Classic controller help, built from the real mapping (including the swap and invert options).
 local function classicPadHelp()
 	local up, down = if S.swapTriggers then "LT" else "RT", if S.swapTriggers then "RT" else "LT"
 	local vPlus, vMinus, rollRight, rollLeft = up, down, "RB", "LB"
@@ -1107,7 +1030,7 @@ local function controlsTab()
 			else
 				lines({ "Left stick = throttle / yaw", "Right stick = pitch / roll" })
 			end
-			lines({ DPAD_HELP[1], DPAD_HELP[2], DPAD_HELP[3] }) -- temp stabilization does nothing in Acro
+			lines({ DPAD_HELP[1], DPAD_HELP[2], DPAD_HELP[3] })
 			Gui.newLine()
 			run(ACRO_PAD_GUI)
 		end
@@ -1185,7 +1108,7 @@ local function sectionButtons(code: string, label: string)
 	end
 	Gui.sameLine()
 	if Gui.button(Icon.Undo .. " Reset " .. label) then
-		loadSection(if code == "O" then "[Oo]" else code) -- OSD reload also re-reads the stick colours
+		loadSection(if code == "O" then "[Oo]" else code)
 		if code == "C" then capturing = nil end
 	end
 	Gui.sameLine()
@@ -1217,7 +1140,7 @@ function onGui()
 	Gui.sameLine()
 	if Gui.button(Icon.Undo .. " Reset") then
 		local snap = snapshot
-		if snap then -- restore the snapshot into the same config table, then write it
+		if snap then
 			for k in pairs(config) do
 				if snap[k] == nil then config[k] = nil end
 			end
@@ -1230,7 +1153,7 @@ function onGui()
 	Gui.sameLine()
 	if Gui.button(Icon.Undo .. " Reset Defaults") then defaultSection(nil) end
 	Gui.sameLine()
-	checkbox("numberBoxes", "Number Boxes") -- outside the tabs; takes effect for every slider this frame
+	checkbox("numberBoxes", "Number Boxes")
 	Gui.sameLine()
 	Gui.text(BUILD_TAG)
 	Gui.newLine()
