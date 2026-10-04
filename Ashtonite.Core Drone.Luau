@@ -11,9 +11,6 @@
 --   archive/, not covered by this licence) were built on "Scha's Drone Camera" by Schafreu, itself based
 --   on Another Axiom's default drone camera. This version is not derived from the code of either script.
 -- This product is not affiliated with Another Axiom Inc. or its videogames Gorilla Tag and Orion Drift and is not endorsed or otherwise sponsored by Another Axiom. Portions of the materials contained herein are property of Another Axiom. ©2025 Another Axiom Inc.
---!nonstrict
--- (nonstrict only because strict mode rejects the host global `metadata`; tools/check.sh also
--- type-checks the rest of the file in strict mode.)
 
 metadata = {
 	name = "Ashtonite.Core Drone",
