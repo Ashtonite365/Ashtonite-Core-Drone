@@ -23,7 +23,7 @@ metadata = {
 -- mouse response are applied per tick (not per second) on purpose, so the drone feels exactly like
 -- earlier versions at the same frame rate.
 
-local BUILD_TAG = "build 2026-10-04d (v2.0.0)" -- shown read-only next to the top buttons, to identify installed builds
+local BUILD_TAG = "build: v2.0.0" -- shown read-only next to the top buttons, to identify installed builds
 local V, Q = Vec3.new, Quat.fromEuler
 local abs, max, min, exp, clamp = math.abs, math.max, math.min, math.exp, math.clamp
 local sin, cos, rad, sign = math.sin, math.cos, math.rad, math.sign
