@@ -24,7 +24,7 @@ Licence
 - Licensed under GPL-3.0-only with NOTICE additional terms (keep the author attribution, mark modified versions).
   Added LICENSE, NOTICE and `package.json` licence field
 - Archived versions before 2.0.0 are not covered by the new licence (see `archive/README.md`)
-- 1.1.2 moved to `archive/1.1.2/`
+- 1.1.2 archived (`archive/1.1.2/`, frozen file at commit `dc53a20`)
 
 ## 1.1.2
 
